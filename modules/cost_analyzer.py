@@ -131,9 +131,45 @@ class CostAnalyzer:
             "compliance_level": requirements.get("compliance_level", "standard")
         }
     
-    def _calculate_service_costs(self, services: List[Dict], scale: Dict) -> List[Dict]:
-        """Calculate costs for each service based on scale"""
+def _calculate_service_costs(self, services: List[Dict], scale: Dict) -> List[Dict]:
+    """Calculate costs for each service based on scale"""
+    
+    service_costs = []
+    
+    for service in services:
+        # Get the service name from the service dict
+        service_name = service.get("name", "")
         
-        service_costs = []
+        # Get the pricing info for this service
+        pricing = self.base_pricing.get(service_name, {})
         
-        for service in services:
+        # Calculate base costs
+        monthly_cost = pricing.get("monthly", 0)
+        hourly_cost = pricing.get("hourly", 0)
+        
+        # Apply scaling factors
+        if "monthly" in pricing:
+            monthly_cost *= scale.get("regions", 1)
+        if "hourly" in pricing:
+            hourly_cost *= scale.get("regions", 1) * 730  # hours in a month
+            
+        # Calculate annual cost
+        annual_cost = monthly_cost * 12
+        
+        # Create cost breakdown for this service
+        service_cost = {
+            "service_name": service_name,
+            "monthly_cost": monthly_cost,
+            "annual_cost": annual_cost,
+            "hourly_cost": hourly_cost,
+            "pricing_details": pricing,
+            "scale_factors": {
+                "regions": scale.get("regions", 1),
+                "users": scale.get("users", 1000),
+                "data_volume": scale.get("data_volume_gb", 500)
+            }
+        }
+        
+        service_costs.append(service_cost)
+    
+    return service_costs
